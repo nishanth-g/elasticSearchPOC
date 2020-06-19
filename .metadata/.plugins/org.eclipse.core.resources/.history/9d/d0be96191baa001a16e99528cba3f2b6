@@ -1,0 +1,32 @@
+package com.example.demo;
+
+import org.apache.http.HttpHost;
+import org.springframework.boot.SpringApplication;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.apache.http.util.EntityUtils;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DemoApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DemoApplication.class, args);
+		
+		System.out.println("Welcome");
+		
+		try (RestHighLevelClient client = new RestHighLevelClient(
+                RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+            Response response = client.getLowLevelClient().performRequest(new Request("GET", "nishanth/posts/_search"));
+            String s = EntityUtils.toString(response.getEntity());
+            System.out.println("thread_pool = " + s);
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        }
+		
+	}
+
+}

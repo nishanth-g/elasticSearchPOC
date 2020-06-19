@@ -1,0 +1,46 @@
+package com.example.demo;
+
+import org.apache.http.HttpHost;
+import org.springframework.boot.SpringApplication;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.apache.http.util.EntityUtils;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DemoApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DemoApplication.class, args);
+		
+		// GET operation 		
+		getDocumentsOfIndex();
+		
+		// POST operation
+		postDocumentOfIndex();
+		
+	}
+
+	private static void postDocumentOfIndex() {
+		DocumentPojo document1 = new DocumentPojo();
+		
+	}
+
+	private static void getDocumentsOfIndex() {
+		try (RestHighLevelClient client = new RestHighLevelClient(
+                RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+            Response response = client.getLowLevelClient().performRequest(new Request("GET", "nishanth/posts/_search"));
+            Response response1 = client.getLowLevelClient().performRequest(new Request("GET", "nishanth/posts/_search?q=_id:1001"));
+            String allEntries = EntityUtils.toString(response.getEntity());
+            String firstEntry = EntityUtils.toString(response1.getEntity());
+            System.out.println("\n\n\n allEntries = " + allEntries);
+            System.out.println("\n\n\n\n firstEntry = " + firstEntry);
+            
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        }
+	}
+
+}

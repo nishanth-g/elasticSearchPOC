@@ -1,0 +1,7 @@
+1591682419959	Delete element
+1591685725198	Extract method 'getDocumentsOfIndex'
+1591686310937	Rename type 'Index'
+1591692774232	Rename field 'currentDate'
+1591692796282	Rename field 'executedBy'
+1591694436899	Move compilation unit
+1591702484212	Delete element

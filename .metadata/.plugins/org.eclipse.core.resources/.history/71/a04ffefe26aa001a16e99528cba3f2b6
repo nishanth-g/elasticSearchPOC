@@ -1,0 +1,103 @@
+package com.example.demo;
+
+import org.apache.http.HttpHost;
+import org.springframework.boot.SpringApplication;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.apache.http.util.EntityUtils;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import com.example.pojo.DocumentPojo;
+
+@SpringBootApplication
+public class DemoApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DemoApplication.class, args);
+		
+		// GET operation 		
+		getDocumentsOfIndex();
+		
+		// POST operation
+		postDocumentOfIndex();
+		
+	}
+
+	private static void postDocumentOfIndex() {
+		DocumentPojo document1 = new DocumentPojo();
+		document1.setCurrentDate("09-JUN-20202");
+		document1.setEmployer("OTSI");
+		document1.setExecutedBy("Rajamohan");
+		document1.setTechnology("IOT");
+		
+		// Converting POJO to JSON format
+		ObjectMapper jsonMapper = new ObjectMapper();
+		String jsonString = null;
+		try {
+			jsonString = jsonMapper.writeValueAsString(document1);
+		} catch (JsonProcessingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		System.out.println("JSON FORMAT OF OBJECT ---->  " + jsonString);
+		
+//		try (RestHighLevelClient client = new RestHighLevelClient(
+//                RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+//		IndexRequest indexRequest = new IndexRequest(index, type, id);
+//        
+//		indexRequest.source(jsonString, XContentType.JSON);
+//
+//        final Header[] headers = Application.prepareAuthHeader();
+//        final IndexResponse response = client.index(indexRequest, headers);
+		
+		try (RestHighLevelClient client = new RestHighLevelClient(
+                RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+            
+			client.index(new IndexRequest("nishanth").id("1006").source(jsonString, XContentType.JSON), RequestOptions.DEFAULT);
+            client.indices().refresh(new RefreshRequest("nishanth"), RequestOptions.DEFAULT);
+            System.out.println("inserted successfully ");
+            
+            
+            // Getting the Object which is inserted
+            Response response1 = client.getLowLevelClient().performRequest(new Request("GET", "nishanth/posts/_search?q=_id:1006"));
+            String insertedEntry = EntityUtils.toString(response1.getEntity());
+            System.out.println("\n\n\n\n insertedEntry = " + insertedEntry);
+            
+            
+//            SearchResponse response = client.search(new SearchRequest("nishanth"), RequestOptions.DEFAULT);
+//            System.out.println("response.getHits().totalHits = " + response.getHits().getTotalHits().value);
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        }
+		
+	}
+
+	private static void getDocumentsOfIndex() {
+		try (RestHighLevelClient client = new RestHighLevelClient(
+                RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+            Response response = client.getLowLevelClient().performRequest(new Request("GET", "nishanth/posts/_search"));
+            Response response1 = client.getLowLevelClient().performRequest(new Request("GET", "nishanth/posts/_search?q=_id:1001"));
+            String allEntries = EntityUtils.toString(response.getEntity());
+            String firstEntry = EntityUtils.toString(response1.getEntity());
+            System.out.println("\n\n\n allEntries = " + allEntries);
+            System.out.println("\n\n\n\n firstEntry = " + firstEntry);
+            
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        }
+	}
+
+}

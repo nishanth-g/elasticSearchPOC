@@ -1,0 +1,157 @@
+package com.example.demo;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.http.HttpHost;
+import org.apache.http.util.EntityUtils;
+import org.apache.lucene.queryparser.flexible.core.builders.QueryBuilder;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.node.NodeService;
+import org.elasticsearch.client.Client;
+import com.example.pojo.DocumentPojo;
+import com.example.pojo.JsonProcessor;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@SpringBootApplication
+public class DemoApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DemoApplication.class, args);
+
+		// GET operation
+		// getDocumentsOfIndex();
+
+		// POST operation
+		// postDocumentOfIndex();
+
+		// Query search
+		getDocumentsByQuery();//
+
+	}
+
+	private static void getDocumentsByQuery() {
+		
+		try (RestHighLevelClient client = new RestHighLevelClient(
+				RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+
+		SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+		sourceBuilder.timeout(new TimeValue(600, TimeUnit.SECONDS)); // Request timeout
+		sourceBuilder.from(0);
+
+		BoolQueryBuilder query = new BoolQueryBuilder();
+
+		query.must(new MatchQueryBuilder("executed_by", "Sanjeeva"));
+		System.out.println("SEARCH QUERY: " + query.toString());
+
+		sourceBuilder.query(query);
+		SearchRequest searchRequest = new SearchRequest();
+		searchRequest.source(sourceBuilder);
+
+		final SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+		
+		SearchHits searchHits = searchResponse.getHits();
+
+		SearchHit[] hits = searchHits.getHits();
+		ObjectMapper objectMapper = new ObjectMapper();
+		Arrays.stream(hits).forEach(hit -> {
+			String source = hit.getSourceAsString();
+			DocumentPojo myPojo = new DocumentPojo();
+			try {
+				myPojo = objectMapper.readValue(source, DocumentPojo.class);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// Use DocumentPojo item...
+
+			System.out.println("getCurrentDate  ---  " + myPojo.getPublishedDate());
+			System.out.println("getEmployer  --  " + myPojo.getEmployer());
+			System.out.println("getTechnology   -- " + myPojo.getTechnology());
+			System.out.println("getExecutedBy   --   " + myPojo.getExecutedBy());
+		});
+		}
+		catch (Exception e) {
+			e.printStackTrace(System.err);
+		}
+	}
+
+	private void postDocumentOfIndex() {
+		DocumentPojo document1 = new DocumentPojo();
+		document1.setPublishedDate("09-JUN-20202");
+		document1.setEmployer("OTSI");
+		document1.setExecutedBy("Rajamohan");
+		document1.setTechnology("IOT");
+
+		// Converting POJO to JSON format
+		ObjectMapper jsonMapper = new ObjectMapper();
+		String jsonString = null;
+		try {
+			jsonString = jsonMapper.writeValueAsString(document1);
+		} catch (JsonProcessingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		System.out.println("JSON FORMAT OF OBJECT ---->  " + jsonString);
+
+		try (RestHighLevelClient client = new RestHighLevelClient(
+				RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+
+			client.index(new IndexRequest("nishanth").id("1006").source(jsonString, XContentType.JSON),
+					RequestOptions.DEFAULT);
+			client.indices().refresh(new RefreshRequest("nishanth"), RequestOptions.DEFAULT);
+			System.out.println("inserted successfully ");
+
+			// Getting the Object which is inserted
+			Response response1 = client.getLowLevelClient()
+					.performRequest(new Request("GET", "nishanth/posts/_search?q=_id:1006"));
+			String insertedEntry = EntityUtils.toString(response1.getEntity());
+			System.out.println("\n\n\n\n insertedEntry = " + insertedEntry);
+
+		} catch (Exception e) {
+			e.printStackTrace(System.err);
+		}
+
+	}
+
+	private static void getDocumentsOfIndex() {
+		try (RestHighLevelClient client = new RestHighLevelClient(
+				RestClient.builder(HttpHost.create("http://localhost:9200")))) {
+			Response response = client.getLowLevelClient().performRequest(new Request("GET", "nishanth/posts/_search"));
+			Response response1 = client.getLowLevelClient()
+					.performRequest(new Request("GET", "nishanth/posts/_search?q=_id:1001"));
+			String allEntries = EntityUtils.toString(response.getEntity());
+			String firstEntry = EntityUtils.toString(response1.getEntity());
+			System.out.println("\n\n\n allEntries = " + allEntries);
+			System.out.println("\n\n\n\n firstEntry = " + firstEntry);
+
+		} catch (Exception e) {
+			e.printStackTrace(System.err);
+		}
+	}
+
+}

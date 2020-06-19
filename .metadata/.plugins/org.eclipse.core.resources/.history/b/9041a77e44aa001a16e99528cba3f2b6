@@ -1,0 +1,12 @@
+package com.example.pojo;
+
+public class SamplePojo {
+
+	String employer;
+	String technology;
+	String published_date;
+	String executed_by;
+	
+	
+	
+}
